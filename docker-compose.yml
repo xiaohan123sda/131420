@@ -1,0 +1,94 @@
+# 随手记 - Docker 部署配置
+# 使用 Docker Compose 一键部署
+
+version: '3.8'
+
+services:
+  # ============ 后端 API 服务 ============
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: auto-accountant-api
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_URL: ${REDIS_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+    depends_on:
+      - redis
+    networks:
+      - auto-accountant-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============ AI 分类服务 ============
+  ai:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: auto-accountant-ai
+    restart: always
+    ports:
+      - "8000:8000"
+    networks:
+      - auto-accountant-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============ Redis 缓存 ============
+  redis:
+    image: redis:7-alpine
+    container_name: auto-accountant-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - auto-accountant-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============ Nginx 反向代理 ============
+  nginx:
+    image: nginx:alpine
+    container_name: auto-accountant-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+      - ai
+    networks:
+      - auto-accountant-network
+
+networks:
+  auto-accountant-network:
+    driver: bridge
+
+volumes:
+  redis-data:
