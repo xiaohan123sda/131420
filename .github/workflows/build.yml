@@ -11,30 +11,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. 拉取代码
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. 配置Flutter环境（使用稳定版）
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.0'
           channel: 'stable'
 
-      # 3. 安装Flutter依赖
       - name: Install dependencies
         run: flutter pub get
         working-directory: ./app
 
-      # 4. 修复Android Gradle兼容问题并构建APK
-      - name: Build APK
+      # 🔥 自动修复 Android 项目结构（解决不支持的 Gradle 错误）
+      - name: Fix Android structure automatically
         run: |
           cd ./app
-          flutter build apk --release --no-tree-shake-icons
+          mv android android_backup
+          flutter create .
         shell: bash
 
-      # 5. 上传APK产物
+      # 🔥 构建 APK
+      - name: Build release APK
+        run: flutter build apk --release --no-tree-shake-icons
+        working-directory: ./app
+
+      # 🔥 上传 APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
