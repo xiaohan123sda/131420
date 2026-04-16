@@ -11,21 +11,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. 拉取代码（使用最新稳定版）
       - uses: actions/checkout@v4
 
+      # 2. 配置 Flutter 环境（使用稳定版）
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.0'
+          channel: 'stable'
 
+      # 3. 进入 Flutter 项目目录并安装依赖
       - name: Install dependencies
         run: flutter pub get
         working-directory: ./app
 
+      # 4. 打包 Release APK
       - name: Build APK
         run: flutter build apk --release
         working-directory: ./app
 
+      # 5. 上传 APK 产物（已修复为 v4 最新版）
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
